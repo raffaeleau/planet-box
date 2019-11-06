@@ -16,11 +16,10 @@ final String progVer = "0.5.0-alpha";
 final String codeName = "youranus";
 final String howToUse = 
   "How to interact:\n" +
-  "* Hold 'UP' key to ZOOM IN\n" +
-  "* Hold 'DOWN' key to ZOOM OUT\n" +
-  "* Use 'LEFT' and 'RIGHT' keys to adjust rotational speed and direction\n" +
-  "* Press 'spacebar' to display more planets\n" +
-  "* Press 'H' for help\n";
+  "* Pinch to ZOOM In/Out\n" +
+  "* Swipe Left/Right/Up/Down to adjust rotational speed and direction\n" +
+  "* Double Tap anywhere to display additional planets\n" +
+  "* Long Press top right corner for information\n";
 
 // Declare objects
 Planet venus;
@@ -192,6 +191,7 @@ void onLongPress(float x, float y) {
   println("LONG PRESS: x = " + x + ", y = " + y);
   if (bLongPress.isIn(x, y)) {
     showStats ^= true;
+    showHelp ^= true;
   }
 }
 
@@ -256,7 +256,7 @@ void displayPlanetB() {
 
 void displayHelp(String s) {
   fill(255);
-  text(s, width/50, height - height/3.5);
+  text(s, width/50, height - height/4);
 }
 
 void displayPlanetStats(Planet p) {
