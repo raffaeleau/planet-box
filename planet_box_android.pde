@@ -1,18 +1,14 @@
 //--------------------------------------------
-// PlanetBox 0.6.0-alpha (code name: youranus)
-// 6/11/2019, RI
+// PlanetBox 0.7.0-alpha (code name: youranus)
+// 7/11/2019, RI
 //--------------------------------------------
 
 import android.view.MotionEvent;
 import ketai.ui.*;
 
-KetaiGesture gesture;
-
-// TODO: Add more interactivity.
-
 // Constants
 final String progName = "PlanetBox";
-final String progVer = "0.6.0-alpha";
+final String progVer = "0.7.0-alpha";
 final String codeName = "youranus";
 final String howToUse = 
   "How to interact:\n" +
@@ -30,6 +26,8 @@ Moon moon;
 Planet planetB;
 CubeSat cubeSat4, cubeSat5;
 
+KetaiGesture gesture;
+
 Boundry bDoubleTap, bLongPress;
 
 // Variables
@@ -37,7 +35,6 @@ boolean showExp = false;
 boolean showHelp = false;
 boolean showStats = false;
 boolean animateZoom = false;
-boolean keyboard = false;
 
 int cooldownStart_ms = 0;
 int zoomStart_ms = 0;
@@ -65,7 +62,7 @@ void setup() {
   float planet_radius = (height / 3.5);
   
   // Venus.
-  venus = new Planet(color(240,220,96), width/2, height/2, planet_radius, planet_freq);
+  venus = new Planet("Venus", color(240,220,96), width/2, height/2, planet_radius, planet_freq);
   
   // A Cube Sat orbit can be geosynchronous and/or tidally locked to a planet's rotation.
   cubeSat1 = new CubeSat(venus, color(180, 220, 220), 5, CubeSat.DIR_CCW, CubeSat.GEO_SYNC, CubeSat.TIDAL_LOCK);
@@ -73,15 +70,15 @@ void setup() {
   cubeSat3 = new CubeSat(venus, color(200, 200, 50), 5, CubeSat.DIR_CCW, CubeSat.NO_SYNC, CubeSat.TIDAL_LOCK);
   
   // The Sun.
-  sun = new Star(color(255,100,0), venus.xpos, venus.ypos, venus.radius + 1.5);
+  sun = new Star("Sun", color(255,100,0), venus.xpos, venus.ypos, venus.radius + 1.5);
   
   // The Moon.
-  moon = new Moon(color(18,17,15), venus.xpos, venus.ypos, venus.radius - 0.5);
+  moon = new Moon("Moon", color(18,17,15), venus.xpos, venus.ypos, venus.radius - 0.5);
   
   // *** END SCENE ***
   
   // Planet B, aka Mars - Experimental
-  planetB = new Planet(color(255/2,130/2,100/2), width/10, height/5, 25 * displayDensity, planet_freq);
+  planetB = new Planet("Planet B", color(255/2,130/2,100/2), width/10, height/5, 25 * displayDensity, planet_freq);
   
   cubeSat4 = new CubeSat(planetB, color(100, 200, 200), 5, CubeSat.DIR_CCW, CubeSat.NO_SYNC, CubeSat.TIDAL_LOCK);
   cubeSat5 = new CubeSat(planetB, color(200, 200, 50), 5, CubeSat.DIR_CW, CubeSat.NO_SYNC, CubeSat.TIDAL_LOCK);
@@ -91,7 +88,7 @@ void setup() {
 
 // Main "loop"
 void draw() {
-  background (color(4, 6, 16));
+  background(color(4, 6, 16));
 
   sun.display();
   venus.display();
@@ -115,42 +112,10 @@ void draw() {
   if (showStats) {
     displayPlanetStats(venus);
   }
-  
   if (animateZoom) {
     animateZoom = displayZoomAnimation();
   }
 }
-
-void keyPressed() {
-  if (key == CODED) {
-    if (keyCode == RIGHT) {
-      venus.setFrequency(venus.getFrequency() + 0.5);
-    } else if (keyCode == LEFT) {
-      venus.setFrequency(venus.getFrequency() - 0.5);
-    } else if (keyCode == DOWN) {
-      zoom(-0.85);
-    } else if (keyCode == UP) {
-      zoom(0.85);    
-    }
-  } else {
-    if (key == ' ') {
-      // Toggle experimental display with 'spacebar'
-      showExp ^= true; 
-    } else if (key == 'h' || key == 'H') {
-      showHelp ^= true;
-    }
-  }
-}
-
-//void mousePressed() {
-//  if (!keyboard) {
-//    openKeyboard();
-//    keyboard = true;
-//  } else {
-//    closeKeyboard();
-//    keyboard = false;
-//  }
-//}
 
 void onRotate(float x, float y, float angle)
 {
@@ -171,14 +136,16 @@ void onPinch(float x, float y, float r)
   final int sensitivity = 110;
   final int sense_window_ms = 50;
   
+  // Animate zoom on an "accelerated" pinch
   if (delta_ms <= sense_window_ms && abs(r) > sensitivity)
   {
     zoomStart_ms = now_ms;
-    zoomDirection = int(r/abs(r));
+    zoomDirection = int(r / abs(r));
     animateZoom = true;
     return;
   }
   
+  // Standard zoom
   float speed = constrain(r, -8, 8);
   if (abs(r) > 3) {
     zoom(speed * 0.75 + 0.05);
@@ -192,12 +159,12 @@ void onDoubleTap(float x, float y)
   showExp ^= true; 
 }
 
-//the coordinates of the start of the gesture, 
-//     end of gesture and velocity in pixels/sec
-void onFlick( float x, float y, float px, float py, float v)
+// The coordinates of the start of the gesture, 
+// end of gesture and velocity in pixels/sec
+void onFlick(float x, float y, float px, float py, float v)
 {
-  // ignore until cooldown expires
-  if ( millis() - cooldownStart_ms < 500) return;
+  // Ignore until cooldown expires
+  if (millis() - cooldownStart_ms < 500) return;
   
   // Get flick's vector heading (angle)
   PVector p = new PVector(x-px, y-py);
@@ -206,7 +173,7 @@ void onFlick( float x, float y, float px, float py, float v)
   println("Degrees: " + angle);
   println("Magnitude: " + p.mag());
 
-  if (p.mag() > 100 ) {
+  if (p.mag() > 100) {
     // Adjust rotational speed based on flick's angle
     if (angle < 270 && angle > 90 ) {
       venus.setFrequency(venus.getFrequency() + 0.5);
@@ -251,7 +218,7 @@ void displayPlanetB() {
   noFill();
   rect(planetB.xpos, planetB.ypos, planetB.diameter*2.5, planetB.diameter*2.5);
   fill(255);
-  text("Planet B", planetB.xpos - planetB.diameter*1.1, planetB.ypos + planetB.diameter*1.1);
+  text(planetB.name, planetB.xpos - planetB.diameter*1.1, planetB.ypos + planetB.diameter*1.1);
   
   // EXPERIMENTAL
   planetB.display();
@@ -268,7 +235,7 @@ void displayHelp(String s) {
 void displayPlanetStats(Planet p) {
   fill(255);
   textAlign(LEFT);
-  text("Venus:" + 
+  text(p.name + ":" + 
        "\n* Radius = " + p.radius + 
        "\n* Frequency = " + p.getFrequency() + 
        "\n* Revolutions = " + int(p.rotation / 360),
@@ -282,18 +249,19 @@ void displayProgInfo(String s) {
 }
 
 boolean displayZoomAnimation() {
-  
   final int period = 900;
+  int target_ms = period + zoomStart_ms;
   
-  // Zooming in a function of time
-  zoom((((period + zoomStart_ms) - millis())/100) * 0.8 * zoomDirection);
+  // Zoom amount decreases over time
+  zoom(((target_ms - millis()) / 100) * 0.8 * zoomDirection);
 
-  return millis() < (period + zoomStart_ms);
+  return (millis() < target_ms);
 }
 
 // Object definitions
 
 class Planet {
+  String name;
   color c;
   float xpos;
   float ypos;
@@ -302,8 +270,9 @@ class Planet {
   float rotation;
   private float frequency;
   
-  public Planet(color c, float xpos, float ypos, float radius, float freq)
+  public Planet(String name, color c, float xpos, float ypos, float radius, float freq)
   {
+    this.name = name;
     this.c = c;
     this.xpos = xpos;
     this.ypos = ypos;
@@ -351,14 +320,14 @@ class Planet {
 }
 
 class Moon extends Planet {
-  public Moon(color c, float xpos, float ypos, float radius) {
-    super(c, xpos, ypos, radius, 1);
+  public Moon(String name, color c, float xpos, float ypos, float radius) {
+    super(name, c, xpos, ypos, radius, 1);
   }
 }
 
 class Star extends Planet {
-  public Star(color c, float xpos, float ypos, float radius) {
-    super(c, xpos, ypos, radius, 1);
+  public Star(String name, color c, float xpos, float ypos, float radius) {
+    super(name, c, xpos, ypos, radius, 1);
   }
 } 
 
