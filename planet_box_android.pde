@@ -1,5 +1,5 @@
 //--------------------------------------------
-// PlanetBox 0.5.0-alpha (code name: youranus)
+// PlanetBox 0.6.0-alpha (code name: youranus)
 // 6/11/2019, RI
 //--------------------------------------------
 
@@ -12,7 +12,7 @@ KetaiGesture gesture;
 
 // Constants
 final String progName = "PlanetBox";
-final String progVer = "0.5.0-alpha";
+final String progVer = "0.6.0-alpha";
 final String codeName = "youranus";
 final String howToUse = 
   "How to interact:\n" +
@@ -36,9 +36,12 @@ Boundry bDoubleTap, bLongPress;
 boolean showExp = false;
 boolean showHelp = false;
 boolean showStats = false;
+boolean animateZoom = false;
 boolean keyboard = false;
 
 int cooldownStart_ms = 0;
+int zoomStart_ms = 0;
+int zoomDirection = 1;
 
 // Called once, on startup.
 void setup() {
@@ -107,9 +110,14 @@ void draw() {
   }
   if (showHelp) {
     displayHelp(howToUse);
+    displayProgInfo(progVer);
   }
   if (showStats) {
     displayPlanetStats(venus);
+  }
+  
+  if (animateZoom) {
+    animateZoom = displayZoomAnimation();
   }
 }
 
@@ -120,9 +128,9 @@ void keyPressed() {
     } else if (keyCode == LEFT) {
       venus.setFrequency(venus.getFrequency() - 0.5);
     } else if (keyCode == DOWN) {
-      zoomOut(0.85);
+      zoom(-0.85);
     } else if (keyCode == UP) {
-      zoomIn(0.85);    
+      zoom(0.85);    
     }
   } else {
     if (key == ' ') {
@@ -144,16 +152,37 @@ void keyPressed() {
 //  }
 //}
 
+void onRotate(float x, float y, float angle)
+{
+  //println("ROTATE (x, y, angle): " + x, y, angle);
+}
+
 void onPinch(float x, float y, float r)
 {
-  // (re)start 'flick' cooldown
-  cooldownStart_ms = millis();
+  println("Milliseconds: " + millis());
+  println("PINCH (x, y, r) : " + x, y, r);
   
-  float speed = abs(constrain(r, -8, 8));
-  if (r > 3) {
-    zoomIn(speed * 0.85);
-  } else if (r < -3) {
-    zoomOut(speed * 0.85);
+  int now_ms = millis();
+  int delta_ms = now_ms - cooldownStart_ms;
+  
+  // (re)start 'flick/swipe' cooldown
+  cooldownStart_ms = now_ms;
+  
+  final int sensitivity = 110;
+  final int sense_window_ms = 50;
+  
+  if (delta_ms <= sense_window_ms && abs(r) > sensitivity)
+  {
+    zoomStart_ms = now_ms;
+    zoomDirection = int(r/abs(r));
+    animateZoom = true;
+    return;
+  }
+  
+  float speed = constrain(r, -8, 8);
+  if (abs(r) > 3) {
+    zoom(speed * 0.75 + 0.05);
+    animateZoom = false;
   }
 }
 
@@ -195,47 +224,24 @@ void onLongPress(float x, float y) {
   }
 }
 
-void zoomOut(float factor) {
+void zoom(float factor) {
   int zoom_lower = height/45;
   int zoom_upper = height/2;
   
   float m = abs(norm(venus.radius, zoom_lower, zoom_upper));
   factor *= 1 + m;
   
-  println("Zoom Out multiplier: " + m);
-  println("Zoom Out factor: " + factor);
+  println("Zoom multiplier: " + m);
+  println("Zoom factor: " + factor);
   
-  if (venus.radius > zoom_lower)
+  if ((venus.radius > zoom_lower && factor < 0) || (venus.radius < zoom_upper && factor > 0))
   {
-    venus.scaleDown(factor);
-    sun.scaleDown(factor);
-    moon.scaleDown(factor);
-    
-    cubeSat1.scaleDown();
-    cubeSat2.scaleDown();
-    cubeSat3.scaleDown();
-  }
-}
-
-void zoomIn(float factor) {
-  int zoom_lower = height/45;
-  int zoom_upper = height/2;
-  
-  float m = abs(norm(venus.radius, zoom_lower, zoom_upper));
-  factor *= 1 + m;
-  
-  println("Zoom In multiplier: " + m);
-  println("Zoom In factor: " + factor);
-  
-  if (venus.radius < zoom_upper)
-  {
-    venus.scaleUp(factor);
-    sun.scaleUp(factor);
-    moon.scaleUp(factor);
-    
-    cubeSat1.scaleUp();
-    cubeSat2.scaleUp();
-    cubeSat3.scaleUp();
+    venus.scale(factor);
+    sun.scale(factor);
+    moon.scale(factor);
+    cubeSat1.scale();
+    cubeSat2.scale();
+    cubeSat3.scale();
   }
 }
 
@@ -261,11 +267,28 @@ void displayHelp(String s) {
 
 void displayPlanetStats(Planet p) {
   fill(255);
+  textAlign(LEFT);
   text("Venus:" + 
        "\n* Radius = " + p.radius + 
        "\n* Frequency = " + p.getFrequency() + 
        "\n* Revolutions = " + int(p.rotation / 360),
        bLongPress.x, bLongPress.y);
+}
+
+void displayProgInfo(String s) {
+  fill(255);
+  textAlign(RIGHT);
+  text(s, width - width/50, height - height/25);
+}
+
+boolean displayZoomAnimation() {
+  
+  final int period = 900;
+  
+  // Zooming in a function of time
+  zoom((((period + zoomStart_ms) - millis())/100) * 0.8 * zoomDirection);
+
+  return millis() < (period + zoomStart_ms);
 }
 
 // Object definitions
@@ -307,12 +330,8 @@ class Planet {
     frequency = freq;
   }
   
-  void scaleUp(float factor) {
+  void scale(float factor) {
     this.radius += factor;  
-  }
-  
-  void scaleDown(float factor) {
-    this.radius -= factor;
   }
   
   void drawGradient(int step) {
@@ -433,11 +452,7 @@ class CubeSat {
   }
   
   // overloaded planet methods
-  void scaleUp() {
-    this.size = planet.radius * this.scale;
-  }
-  
-  void scaleDown() {
+  void scale() {
     this.size = planet.radius * this.scale;
   }
 }
