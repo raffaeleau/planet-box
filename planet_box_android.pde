@@ -1,5 +1,5 @@
 //--------------------------------------------
-// PlanetBox 0.7.0-alpha (code name: youranus)
+// PlanetBox 0.7.0-alpha
 // 7/11/2019, RI
 //--------------------------------------------
 
@@ -9,7 +9,7 @@ import ketai.ui.*;
 // Constants
 final String progName = "PlanetBox";
 final String progVer = "0.7.0-alpha";
-final String codeName = "youranus";
+final String codeName = "venusian";
 final String howToUse = 
   "How to interact:\n" +
   "* Pinch to ZOOM In/Out\n" +
